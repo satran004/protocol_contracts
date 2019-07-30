@@ -11,13 +11,14 @@ public abstract class RewardsManager {
         VOTE, UNVOTE, WITHDRAW, BLOCK
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static class Event {
         public EventType type;
         public Address source;
         public long blockNumber;
-        public long amount;
+        public double amount;
 
-        public Event(EventType type, Address source, long blockNumber, long amount) {
+        public Event(EventType type, Address source, long blockNumber, double amount) {
             this.type = type;
             this.source = source;
             this.blockNumber = blockNumber;
@@ -41,5 +42,5 @@ public abstract class RewardsManager {
      * @param events a list of user operations
      * @return both pending and withdrawn rewards
      */
-    public abstract Map<Address, Long> computeRewards(List<Event> events);
+    public abstract Map<Address, Double> computeRewards(List<Event> events);
 }

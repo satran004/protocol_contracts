@@ -5,11 +5,10 @@ import avm.Address;
 import java.util.*;
 
 // NOTE: this code is for simulation purpose, not for production.
-
+@SuppressWarnings("WeakerAccess")
 public class AccRewardsManager extends RewardsManager {
 
     private static final boolean DEBUG = false;
-
 
     private static class Pair<K, V> {
         private K first;

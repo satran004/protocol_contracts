@@ -12,7 +12,7 @@ public class SimpleRewardsManager extends RewardsManager {
     private Map<Address, Long> pendingRewardMap = new HashMap<>();
     private Map<Address, Long> withdrawnRewardMap = new HashMap<>();
 
-    public Map<Address, Long> computeRewards(List<Event> events) throws RuntimeException {
+    public Map<Address, Double> computeRewards(List<Event> events) throws RuntimeException {
         // ASSUMPTIONS:
         // 1. all events are sorted by block number
         // 2. the block event is the last event for that particular block
