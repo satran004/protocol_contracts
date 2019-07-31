@@ -94,7 +94,6 @@ public class F2ToyRewardsManager extends RewardsManager {
          * "Internal" Functions used by Leave and Join
          * ----------------------------------------------------------------------*/
 
-        // increment validator period, returning the period just ended
         private void incrementPeriod() {
             if (accumulatedStake > 0) {
                 prevCRR = currentCRR;

@@ -1,7 +1,7 @@
 package org.aion.unity.distribution.schemes;
 
 import avm.Address;
-import org.aion.unity.distribution.model.DelegatorStartingInfo;
+import org.aion.unity.distribution.model.StartingInfo;
 import org.aion.unity.distribution.model.HistoricalRewards;
 import org.aion.unity.distribution.model.HistoricalRewardsStore;
 import org.aion.unity.distribution.model.RewardsManager;
@@ -30,7 +30,7 @@ public class F1ToyRewardsManager extends RewardsManager {
         private Map<Address, Double> withdrawnRewards = new HashMap<>(); // rewards withdrawn from the pool, by each delegator
 
         private HistoricalRewardsStore history;
-        private Map<Address, DelegatorStartingInfo> delegations; // total delegations per delegator
+        private Map<Address, StartingInfo> delegations; // total delegations per delegator
 
         public double getBondedStake(Address delegator) {
             return delegations.containsKey(delegator) ? delegations.get(delegator).stake : 0d;
@@ -71,12 +71,12 @@ public class F1ToyRewardsManager extends RewardsManager {
         private double leave(Address delegator, long blockNumber) {
             assert (delegator != null && delegations.containsKey(delegator)); // sanity check
 
-            long endingPeriod = incrementValidatorPeriod();
+            long endingPeriod = incrementPeriod();
             double rewards = calculateUnsettledRewards(delegator, blockNumber, endingPeriod);
 
             settledRewards.put(delegator, rewards + settledRewards.getOrDefault(delegator, 0d));
 
-            DelegatorStartingInfo startingInfo = delegations.get(delegator);
+            StartingInfo startingInfo = delegations.get(delegator);
             double stake = startingInfo.stake;
 
             history.decrementReferenceCount(startingInfo.previousPeriod);
@@ -95,7 +95,7 @@ public class F1ToyRewardsManager extends RewardsManager {
             history.incrementReferenceCount(prevPeriod());
 
             // add this new delegation to our store
-            delegations.put(delegator, new DelegatorStartingInfo(prevPeriod(), stake, blockNumber));
+            delegations.put(delegator, new StartingInfo(prevPeriod(), stake, blockNumber));
 
             accumulatedStake += stake;
         }
@@ -106,8 +106,7 @@ public class F1ToyRewardsManager extends RewardsManager {
         private long prevPeriod() { assert (currentPeriod > 0); return currentPeriod - 1; }
         private long nextPeriod() { return currentPeriod + 1; }
 
-        // increment validator period, returning the period just ended
-        private long incrementValidatorPeriod() {
+        private long incrementPeriod() {
             double currentCRR = 0;
             if (accumulatedStake > 0) {
                 currentCRR = currentRewards / accumulatedStake;
@@ -131,7 +130,7 @@ public class F1ToyRewardsManager extends RewardsManager {
         }
 
         private double calculateUnsettledRewards(Address delegator, long blockNumber, long endingPeriod) {
-            DelegatorStartingInfo stakingInfo = delegations.get(delegator);
+            StartingInfo stakingInfo = delegations.get(delegator);
 
             if (stakingInfo.blockNumber > blockNumber)
                 throw new RuntimeException("Cannot calculate delegation rewards for blocks before stake was delegated");
@@ -179,7 +178,7 @@ public class F1ToyRewardsManager extends RewardsManager {
             if (delegations.containsKey(delegator))
                 prevBond = leave(delegator, blockNumber);
             else
-                incrementValidatorPeriod();
+                incrementPeriod();
 
             double nextBond = prevBond + stake;
             join(delegator, blockNumber, nextBond);
