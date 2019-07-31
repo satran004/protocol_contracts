@@ -12,6 +12,7 @@ public class SimpleRewardsManager extends RewardsManager {
     private Map<Address, Double> stakeMap = new HashMap<>();
     private Map<Address, Double> pendingRewardMap = new HashMap<>();
     private Map<Address, Double> withdrawnRewardMap = new HashMap<>();
+    Set<Address> addresses = new HashSet<>();
 
     public Map<Address, Double> computeRewards(List<Event> events) throws RuntimeException {
         // ASSUMPTIONS:
@@ -32,6 +33,9 @@ public class SimpleRewardsManager extends RewardsManager {
 
             if (itr.hasNext() && events.get(itr.nextIndex()).blockNumber < x.blockNumber)
                 throw new RuntimeException("Block numbers are NOT monotonically increasing");
+
+            if (x.type != EventType.BLOCK)
+                addresses.add(x.source);
 
             switch (x.type) {
                 case VOTE: {
@@ -64,7 +68,7 @@ public class SimpleRewardsManager extends RewardsManager {
                     pendingRewardMap.remove(x.source);
                     rewardOutstanding -= remaining;
 
-                    withdrawnRewardMap.put(x.source, remaining);
+                    withdrawnRewardMap.put(x.source, withdrawnRewardMap.getOrDefault(x.source, 0d) + remaining);
 
                     break;
                 }
@@ -97,14 +101,12 @@ public class SimpleRewardsManager extends RewardsManager {
             }
         }
 
-        Map<Address, Double> toReturnMap = new HashMap<>();
-        pendingRewardMap.forEach((k, v) -> {
-            if (withdrawnRewardMap.containsKey(k))
-                toReturnMap.put(k, v + withdrawnRewardMap.get(k));
-            else
-                toReturnMap.put(k, v);
-        });
-        return toReturnMap;
+        Map<Address, Double> rewards = new HashMap<>();
+        for (Address a : addresses) {
+            double v = pendingRewardMap.getOrDefault(a, 0d) + withdrawnRewardMap.getOrDefault(a, 0d);
+            rewards.put(a, v);
+        }
+        return rewards;
     }
 
     /**

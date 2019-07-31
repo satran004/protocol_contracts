@@ -57,10 +57,10 @@ public class FuzzingTest {
         List<RewardsManager.Event> events = new ArrayList<>();
 
         // system params
-        int users = 1000;
+        int users = 100;
         long maxUserBalance = 25000;
         long startBlock = 1;
-        long endBlock = 10000;
+        long endBlock = 1000;
         int maxActionsPerBlock = 3;
         double blockReward = 5_000_000L;
         float poolProbability = 0.8f; // pool's probability of winning a block.
@@ -108,6 +108,8 @@ public class FuzzingTest {
 
                         if (pendingRewards > 0)
                             v.add(new RewardsManager.Event(RewardsManager.EventType.WITHDRAW, user, i, null));
+
+
                     }
                 }
             }

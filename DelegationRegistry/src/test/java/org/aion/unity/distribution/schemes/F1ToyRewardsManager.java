@@ -74,7 +74,6 @@ public class F1ToyRewardsManager extends RewardsManager {
             long endingPeriod = incrementValidatorPeriod();
             double rewards = calculateUnsettledRewards(delegator, blockNumber, endingPeriod);
 
-            outstandingRewards -= rewards;
             settledRewards.put(delegator, rewards + settledRewards.getOrDefault(delegator, 0d));
 
             DelegatorStartingInfo startingInfo = delegations.get(delegator);
@@ -174,7 +173,7 @@ public class F1ToyRewardsManager extends RewardsManager {
         }
 
         public void onVote(Address delegator, long blockNumber, double stake) {
-            assert (stake > 0);
+            assert (stake >= 0);
 
             double prevBond = 0d;
             if (delegations.containsKey(delegator))
@@ -249,24 +248,25 @@ public class F1ToyRewardsManager extends RewardsManager {
             blockNumber = event.blockNumber;
             Double amount = event.amount;
 
+            if (event.type != EventType.BLOCK)
+                addresses.add(delegator);
+
             switch (event.type) {
                 case VOTE: {
-                    addresses.add(delegator);
                     sm.onVote(delegator, blockNumber, amount);
                     break;
                 }
                 case UNVOTE: {
-                    addresses.add(delegator);
                     sm.onUnvote(delegator, blockNumber, amount);
                     break;
                 }
                 case WITHDRAW: {
                     assert (amount == null);
-                    addresses.add(delegator);
                     sm.onWithdraw(delegator, blockNumber);
                     break;
                 }
                 case BLOCK: {
+                    assert (delegator == null);
                     sm.onBlock(blockNumber, amount);
                     break;
                 }

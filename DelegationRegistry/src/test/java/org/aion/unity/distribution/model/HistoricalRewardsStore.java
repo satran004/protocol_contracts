@@ -41,7 +41,7 @@ public class HistoricalRewardsStore {
         if (v.referenceCount <= 0)
             throw new RuntimeException("Attempted to decrement reference count below 0");
 
-        if (v.referenceCount-- <= 0) {
+        if (--v.referenceCount <= 0) {
             map.remove(period);
         }
     }
