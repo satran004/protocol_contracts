@@ -2,6 +2,7 @@ package org.aion.unity.distribution;
 
 import avm.Address;
 import org.aion.unity.distribution.schemes.F1ToyRewardsManager;
+import org.aion.unity.distribution.schemes.F2ToyRewardsManager;
 import org.aion.unity.distribution.schemes.SimpleRewardsManager;
 import org.aion.unity.distribution.model.RewardsManager;
 import org.junit.Test;
@@ -45,10 +46,16 @@ public class FuzzingTest {
         RewardsManager f1 = new F1ToyRewardsManager();
         Map<Address, Double> r1 = f1.computeRewards(events);
 
+        RewardsManager f2 = new F2ToyRewardsManager();
+        Map<Address, Double> r2 = f2.computeRewards(events);
+
         System.out.println(r0);
         System.out.println(r1);
+        System.out.println(r2);
         double[] error1 = calcErrorSD(r0, r1);
+        double[] error2 = calcErrorSD(r0, r2);
         System.out.printf("Error (F1): mean = %.2f%%, sd = %.2f%%\n", error1[0], error1[1]);
+        System.out.printf("Error (F2): mean = %.2f%%, sd = %.2f%%\n", error2[0], error2[1]);
     }
 
     @Test
@@ -60,7 +67,7 @@ public class FuzzingTest {
         int users = 100;
         long maxUserBalance = 25000;
         long startBlock = 1;
-        long endBlock = 1000;
+        long endBlock = 5000;
         int maxActionsPerBlock = 3;
         double blockReward = 5_000_000L;
         float poolProbability = 0.8f; // pool's probability of winning a block.
@@ -129,17 +136,23 @@ public class FuzzingTest {
             events.addAll(v);
         }
 
-
         RewardsManager simple = new SimpleRewardsManager();
         Map<Address, Double> r0 = simple.computeRewards(events);
 
         RewardsManager f1 = new F1ToyRewardsManager();
         Map<Address, Double> r1 = f1.computeRewards(events);
 
+        RewardsManager f2 = new F2ToyRewardsManager();
+        Map<Address, Double> r2 = f2.computeRewards(events);
+
         System.out.println(r0);
         System.out.println(r1);
+        System.out.println(r2);
         double[] error1 = calcErrorSD(r0, r1);
+        double[] error2 = calcErrorSD(r0, r2);
         System.out.printf("Error (F1): mean = %.2f%%, sd = %.2f%%\n", error1[0], error1[1]);
+        System.out.printf("Error (F2): mean = %.2f%%, sd = %.2f%%\n", error2[0], error2[1]);
+
     }
 
     private Address addressOf(int n) {
