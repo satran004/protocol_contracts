@@ -1,4 +1,4 @@
-package org.aion.unity.model;
+package org.aion.unity.distribution.model;
 
 /**
  * Stores some "starting information" for a delegation:

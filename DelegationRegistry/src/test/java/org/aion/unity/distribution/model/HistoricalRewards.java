@@ -1,4 +1,4 @@
-package org.aion.unity.model;
+package org.aion.unity.distribution.model;
 
 /**
  * Historical Reward Value
@@ -11,11 +11,11 @@ package org.aion.unity.model;
  * read that record) } + { one per pool for the zeroth period, set on initialization }.
  */
 @SuppressWarnings({"unused", "WeakerAccess"})
-public class HistoricalReward {
+public class HistoricalRewards {
     public double cumulativeRewardRatio;
     public int referenceCount;
 
-    public HistoricalReward(double value) {
+    public HistoricalRewards(double value) {
         this.cumulativeRewardRatio = value;
         this.referenceCount = 1; // always initialize with a reference count of 1
     }

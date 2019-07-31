@@ -1,13 +1,15 @@
-package org.aion.unity;
+package org.aion.unity.distribution;
 
 import avm.Address;
+import org.aion.unity.distribution.schemes.SimpleRewardsManager;
+import org.aion.unity.distribution.model.RewardsManager;
 import org.junit.Test;
 
 import java.math.BigInteger;
 import java.util.*;
 
-import static org.aion.unity.RewardsManager.Event;
-import static org.aion.unity.RewardsManager.EventType;
+import static org.aion.unity.distribution.model.RewardsManager.Event;
+import static org.aion.unity.distribution.model.RewardsManager.EventType;
 import static org.junit.Assert.fail;
 
 public class SimpleRewardsManagerTest {
@@ -28,10 +30,10 @@ public class SimpleRewardsManagerTest {
     public void testBadInput1() {
         // Order of blocks is wrong. Should throw a runtime exception.
         List<Event> v = new ArrayList<>();
-        v.add(new Event(EventType.VOTE, addressOf(0), 1, 1));
-        v.add(new Event(EventType.VOTE, addressOf(1), 2, 1));
-        v.add(new Event(EventType.VOTE, addressOf(2), 3, 1));
-        v.add(new Event(EventType.VOTE, addressOf(3), 1, 1));
+        v.add(new Event(EventType.VOTE, addressOf(0), 1, 1d));
+        v.add(new Event(EventType.VOTE, addressOf(1), 2, 1d));
+        v.add(new Event(EventType.VOTE, addressOf(2), 3, 1d));
+        v.add(new Event(EventType.VOTE, addressOf(3), 1, 1d));
 
         RewardsManager rm = new SimpleRewardsManager();
         rm.computeRewards(v);
@@ -41,10 +43,10 @@ public class SimpleRewardsManagerTest {
     public void testBadInput2() {
         // Order of blocks is wrong. Should throw a runtime exception.
         List<Event> v = new ArrayList<>();
-        v.add(new Event(EventType.VOTE, addressOf(0), 1, 1));
-        v.add(new Event(EventType.VOTE, addressOf(1), 2, 1));
-        v.add(new Event(EventType.BLOCK, null, 3, 1));
-        v.add(new Event(EventType.VOTE, addressOf(2), 3, 1));
+        v.add(new Event(EventType.VOTE, addressOf(0), 1, 1d));
+        v.add(new Event(EventType.VOTE, addressOf(1), 2, 1d));
+        v.add(new Event(EventType.BLOCK, null, 3, 1d));
+        v.add(new Event(EventType.VOTE, addressOf(2), 3, 1d));
 
         RewardsManager rm = new SimpleRewardsManager();
         boolean a = true;

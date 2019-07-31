@@ -1,4 +1,4 @@
-package org.aion.unity;
+package org.aion.unity.distribution.model;
 
 import avm.Address;
 
@@ -16,9 +16,9 @@ public abstract class RewardsManager {
         public EventType type;
         public Address source;
         public long blockNumber;
-        public double amount;
+        public Double amount;
 
-        public Event(EventType type, Address source, long blockNumber, double amount) {
+        public Event(EventType type, Address source, long blockNumber, Double amount) {
             this.type = type;
             this.source = source;
             this.blockNumber = blockNumber;

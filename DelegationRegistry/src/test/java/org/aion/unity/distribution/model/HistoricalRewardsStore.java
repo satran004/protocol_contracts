@@ -1,4 +1,4 @@
-package org.aion.unity.model;
+package org.aion.unity.distribution.model;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -6,13 +6,13 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class HistoricalRewardsStore {
 
-    private Map<Long, HistoricalReward> map;
+    private Map<Long, HistoricalRewards> map;
 
     public HistoricalRewardsStore() {
         map = new HashMap<>();
     }
 
-    public void setHistoricalReward(long period, HistoricalReward reward) {
+    public void setHistoricalReward(long period, HistoricalRewards reward) {
 
         if (map.containsKey(period))
             throw new RuntimeException("Attempted to over-write a historical record");
@@ -21,19 +21,19 @@ public class HistoricalRewardsStore {
     }
 
     public void incrementReferenceCount(long period) {
-        HistoricalReward v = map.get(period);
+        HistoricalRewards v = map.get(period);
 
         if (v == null)
             throw new RuntimeException("Incremented reference count on a historical record that does not exist");
 
-        if (v.referenceCount >= 2)
-            throw new RuntimeException("Attempted to increment reference count beyond 2");
+        if (v.referenceCount >= 3)
+            throw new RuntimeException("Attempted to increment reference count beyond 3");
 
         v.referenceCount++;
     }
 
     public void decrementReferenceCount(long period) {
-        HistoricalReward v = map.get(period);
+        HistoricalRewards v = map.get(period);
 
         if (v == null)
             throw new RuntimeException("Incremented reference count on a historical record that does not exist");
@@ -46,8 +46,8 @@ public class HistoricalRewardsStore {
         }
     }
 
-    public HistoricalReward getHistoricalReward(long period) {
-        HistoricalReward v = map.get(period);
+    public HistoricalRewards getHistoricalReward(long period) {
+        HistoricalRewards v = map.get(period);
 
         if (v == null)
             throw new RuntimeException("Attempted to retrieve a historical record that does not exist");

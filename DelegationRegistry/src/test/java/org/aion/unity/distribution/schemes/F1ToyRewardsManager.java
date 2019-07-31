@@ -1,16 +1,15 @@
-package org.aion.unity;
+package org.aion.unity.distribution.schemes;
 
 import avm.Address;
-import org.aion.unity.model.DelegatorStartingInfo;
-import org.aion.unity.model.HistoricalReward;
-import org.aion.unity.model.HistoricalRewardsStore;
+import org.aion.unity.distribution.model.DelegatorStartingInfo;
+import org.aion.unity.distribution.model.HistoricalRewards;
+import org.aion.unity.distribution.model.HistoricalRewardsStore;
+import org.aion.unity.distribution.model.RewardsManager;
 
 import java.util.*;
 
-@SuppressWarnings("unused")
-public class F2RewardsManager extends RewardsManager {
+public class F1ToyRewardsManager extends RewardsManager {
 
-    @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "MismatchedQueryAndUpdateOfCollection"})
     private class PoolStateMachine {
         // pool variables
         private final double fee;
@@ -58,7 +57,7 @@ public class F2RewardsManager extends RewardsManager {
             currentPeriod = 1; // accounting starts at period = 1
 
             history = new HistoricalRewardsStore();
-            history.setHistoricalReward(0, new HistoricalReward(0D)); // set period 0 reward to be 0
+            history.setHistoricalReward(0, new HistoricalRewards(0D)); // set period 0 reward to be 0
 
             delegations = new HashMap<>();
         }
@@ -73,7 +72,7 @@ public class F2RewardsManager extends RewardsManager {
             assert (delegator != null && delegations.containsKey(delegator)); // sanity check
 
             long endingPeriod = incrementValidatorPeriod();
-            double rewards = calculateUnsettledRewards(delegator, endingPeriod, blockNumber);
+            double rewards = calculateUnsettledRewards(delegator, blockNumber, endingPeriod);
 
             outstandingRewards -= rewards;
             settledRewards.put(delegator, rewards + settledRewards.getOrDefault(delegator, 0d));
@@ -84,6 +83,8 @@ public class F2RewardsManager extends RewardsManager {
             history.decrementReferenceCount(startingInfo.previousPeriod);
 
             delegations.remove(delegator);
+
+            accumulatedStake -= stake;
 
             return stake;
         }
@@ -96,6 +97,8 @@ public class F2RewardsManager extends RewardsManager {
 
             // add this new delegation to our store
             delegations.put(delegator, new DelegatorStartingInfo(prevPeriod(), stake, blockNumber));
+
+            accumulatedStake += stake;
         }
 
         /* ----------------------------------------------------------------------
@@ -119,7 +122,7 @@ public class F2RewardsManager extends RewardsManager {
             history.decrementReferenceCount(prevPeriod());
 
             // set new historical rewards with reference count of 1
-            history.setHistoricalReward(currentPeriod, new HistoricalReward(nextCRR));
+            history.setHistoricalReward(currentPeriod, new HistoricalRewards(nextCRR));
 
             // set current rewards, incrementing period by 1
             currentRewards = 0;
@@ -131,7 +134,7 @@ public class F2RewardsManager extends RewardsManager {
         private double calculateUnsettledRewards(Address delegator, long blockNumber, long endingPeriod) {
             DelegatorStartingInfo stakingInfo = delegations.get(delegator);
 
-            if (stakingInfo.blockNumber < blockNumber)
+            if (stakingInfo.blockNumber > blockNumber)
                 throw new RuntimeException("Cannot calculate delegation rewards for blocks before stake was delegated");
 
             if (stakingInfo.blockNumber == blockNumber)
@@ -158,7 +161,7 @@ public class F2RewardsManager extends RewardsManager {
         public void onUnvote(Address delegator, long blockNumber, double stake) {
             assert (delegations.containsKey(delegator));
             double prevBond = delegations.get(delegator).stake;
-            assert (stake > prevBond); // make sure the amount of unvote requested is legal.
+            assert (stake <= prevBond); // make sure the amount of unvote requested is legal.
 
             double unbondedStake = leave(delegator, blockNumber);
             assert (unbondedStake == prevBond);
@@ -176,6 +179,8 @@ public class F2RewardsManager extends RewardsManager {
             double prevBond = 0d;
             if (delegations.containsKey(delegator))
                 prevBond = leave(delegator, blockNumber);
+            else
+                incrementValidatorPeriod();
 
             double nextBond = prevBond + stake;
             join(delegator, blockNumber, nextBond);
@@ -188,9 +193,13 @@ public class F2RewardsManager extends RewardsManager {
          * a settlement ("leave") or save on gas and just withdraw out the rewards.
          */
         public void onWithdraw(Address delegator, long blockNumber) {
-            // do a "leave-and-join"
-            double unbondedStake = leave(delegator, blockNumber);
-            join(delegator, blockNumber, unbondedStake);
+            if (delegations.containsKey(delegator)) {
+                // do a "leave-and-join"
+                double unbondedStake = leave(delegator, blockNumber);
+                join(delegator, blockNumber, unbondedStake);
+            }
+
+            // if I don't see a delegation, then you must have been settled already.
 
             // now that all rewards owed to you are settled, you can withdraw them all at once
             double rewards = settledRewards.getOrDefault(delegator, 0d);
@@ -228,7 +237,7 @@ public class F2RewardsManager extends RewardsManager {
 
     @Override
     public Map<Address, Double> computeRewards(List<Event> events) {
-        PoolStateMachine sm = new PoolStateMachine(0.2D);
+        PoolStateMachine sm = new PoolStateMachine(0D);
         Set<Address> addresses = new HashSet<>();
 
         assert (events.size() > 0);
@@ -238,7 +247,7 @@ public class F2RewardsManager extends RewardsManager {
         for (Event event : events) {
             Address delegator = event.source;
             blockNumber = event.blockNumber;
-            double amount = event.amount;
+            Double amount = event.amount;
 
             switch (event.type) {
                 case VOTE: {
@@ -252,6 +261,7 @@ public class F2RewardsManager extends RewardsManager {
                     break;
                 }
                 case WITHDRAW: {
+                    assert (amount == null);
                     addresses.add(delegator);
                     sm.onWithdraw(delegator, blockNumber);
                     break;
@@ -263,11 +273,21 @@ public class F2RewardsManager extends RewardsManager {
             }
         }
 
+        /*
         // finalize the owed + withdrawn rewards
         Map<Address, Double> rewards = new HashMap<>();
         for (Address a : addresses) {
-            double r = sm.getOwedRewards(a, blockNumber) + sm.getWithdrawnRewards(a);
+            double owedRewards = sm.getOwedRewards(a, blockNumber);
+            double withdrawnRewards = sm.getWithdrawnRewards(a);
+            double r = owedRewards + withdrawnRewards;
             rewards.put(a, r);
+        }*/
+
+        // finalize the owed + withdrawn rewards
+        Map<Address, Double> rewards = new HashMap<>();
+        for (Address a : addresses) {
+            sm.onWithdraw(a, blockNumber);
+            rewards.put(a, sm.getWithdrawnRewards(a));
         }
 
         return rewards;
