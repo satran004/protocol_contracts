@@ -1,7 +1,7 @@
-package org.aion.unity.distribution.schemes;
+package org.aion.unity.toy.schemes;
 
 import avm.Address;
-import org.aion.unity.distribution.model.RewardsManager;
+import org.aion.unity.toy.model.RewardsManager;
 
 import java.util.*;
 

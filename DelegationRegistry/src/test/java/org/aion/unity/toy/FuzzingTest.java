@@ -1,10 +1,10 @@
-package org.aion.unity.distribution;
+package org.aion.unity.toy;
 
 import avm.Address;
-import org.aion.unity.distribution.schemes.F1ToyRewardsManager;
-import org.aion.unity.distribution.schemes.F2ToyRewardsManager;
-import org.aion.unity.distribution.schemes.SimpleRewardsManager;
-import org.aion.unity.distribution.model.RewardsManager;
+import org.aion.unity.toy.schemes.F1RewardsManager;
+import org.aion.unity.toy.schemes.F2RewardsManager;
+import org.aion.unity.toy.schemes.SimpleRewardsManager;
+import org.aion.unity.toy.model.RewardsManager;
 import org.junit.Test;
 
 import java.math.BigInteger;
@@ -43,10 +43,10 @@ public class FuzzingTest {
         RewardsManager simple = new SimpleRewardsManager();
         Map<Address, Double> r0 = simple.computeRewards(events);
 
-        RewardsManager f1 = new F1ToyRewardsManager();
+        RewardsManager f1 = new F1RewardsManager();
         Map<Address, Double> r1 = f1.computeRewards(events);
 
-        RewardsManager f2 = new F2ToyRewardsManager();
+        RewardsManager f2 = new F2RewardsManager();
         Map<Address, Double> r2 = f2.computeRewards(events);
 
         System.out.println(r0);
@@ -139,10 +139,10 @@ public class FuzzingTest {
         RewardsManager simple = new SimpleRewardsManager();
         Map<Address, Double> r0 = simple.computeRewards(events);
 
-        RewardsManager f1 = new F1ToyRewardsManager();
+        RewardsManager f1 = new F1RewardsManager();
         Map<Address, Double> r1 = f1.computeRewards(events);
 
-        RewardsManager f2 = new F2ToyRewardsManager();
+        RewardsManager f2 = new F2RewardsManager();
         Map<Address, Double> r2 = f2.computeRewards(events);
 
         System.out.println(r0);

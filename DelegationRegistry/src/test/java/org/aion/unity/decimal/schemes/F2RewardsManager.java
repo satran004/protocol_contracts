@@ -1,58 +1,106 @@
-package org.aion.unity.distribution.schemes;
+package org.aion.unity.decimal.schemes;
 
 import avm.Address;
-import org.aion.unity.distribution.model.*;
+import org.aion.unity.decimal.model.DecimalCoin;
+import org.aion.unity.decimal.model.RewardsManager;
 
 import java.util.*;
 
-public class F2ToyRewardsManager extends RewardsManager {
+/**
+ * Notes on Precision Selection
+ * ----------------------------
+ *
+ * WLOG, all amounts are denominated in some units of "coin".
+ *
+ * When we refer to "precision", we mean the number of decimal places required to represent the smallest possible real
+ * number that can arise when we divide the smallest unit of staked coin, with the largest size of the pool.
+ *
+ * Such quantity required in the computation of the F1 rewards distribution scheme.
+ *
+ * Consider the following degenerate case: all coins in the system are delegated to one pool, and a delegator has
+ * staked 1 coin to this pool. In this case, the maximum decimal "precision" we need is the number of decimal places
+ * required to represent (max # of coins in the system)^-1
+ *
+ * Now, if there is an upper limit to the number of coins that can be delegated to a pool, then the "precision" we
+ * need would be the number of decimal places required to represent (max # of coins per pool)^-1. In the
+ * absence of such a maximum, in the design of this system, we fall-back to the "precision" that depends on the max #
+ * of coins in the system.
+ *
+ * Furthermore, we run into another problem here; the max # of coins in the system has not been defined for Aion. In
+ * order to resolve this, we consider the maximum number which can be represented by a 64-bit signed (Java) long,
+ * the number of decimal places required is ceil(log_10(2^63 - 1)) = ceil(18.96) = 19 ~ 20.
+ *
+ * Assuming the AVM data-word limit of 128-bit unsigned integer, the number of decimal places required
+ * is ceil(log_10(2^128 - 1)) = ceil(38.53) = 39 ~ 40.
+ *
+ * We pick 20 decimal places as the "precision" in this proof of concept.
+ *
+ * Under such a precision regime:
+ * > All additions and subtractions can be computed without precision loss
+ * > Multiplications would need to be performed with double the precision (40 decimal places), which is then
+ *    truncated down to 20 decimal places.
+ *
+ * Miscellaneous Notes for the Implementor
+ * ---------------------------------------
+ *
+ * 1. We've used long to represent all "coin" units in this system. A decision needs to be made about the units used
+ *    in the smart contract; if we're using base units (nAmp) or Aion, or some other quanta of coin.
+ *
+ *
+ *
+ */
+@SuppressWarnings("unused")
+public class F2RewardsManager extends RewardsManager {
 
     @SuppressWarnings({"WeakerAccess"})
     public class StartingInfo {
-        public double stake;             // amount of coins being delegated
+        public long stake;             // amount of coins being delegated
         public long blockNumber;       // block number at which delegation was created
-        public double crr;
+        public DecimalCoin crr;
 
-        public StartingInfo(double stake, long blockNumber, double crr) {
+        public StartingInfo(long stake, long blockNumber, DecimalCoin crr) {
             this.stake = stake;
             this.blockNumber = blockNumber;
             this.crr = crr;
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     private class PoolStateMachine {
         // pool variables
-        private final double fee;
+        private final int fee; // 0-100%
 
         // state variables
         private long accumulatedStake; // stake accumulated in the pool
 
         // commission is handled separately
-        private double accumulatedCommission;
-        private double withdrawnCommission;
+        private long accumulatedCommission;
+        private long withdrawnCommission;
 
-        private double outstandingRewards; // total coins (as rewards) owned by the pool
+        private long outstandingRewards; // total coins (as rewards), owned by the pool
 
-        private double currentRewards; // rewards accumulated this period
+        private long currentRewards; // rewards accumulated this period
 
-        private Map<Address, Double> settledRewards = new HashMap<>(); // rewards in the "settled" state
-        private Map<Address, Double> withdrawnRewards = new HashMap<>(); // rewards withdrawn from the pool, by each delegator
+        private Map<Address, Long> settledRewards = new HashMap<>(); // rewards in the "settled" state
+        private Map<Address, Long> withdrawnRewards = new HashMap<>(); // rewards withdrawn from the pool, by each delegator
 
         private Map<Address, StartingInfo> delegations; // total delegations per delegator
 
-        double currentCRR;
-        double prevCRR;
+        // TODO: can't use arbitrary precision real numbers here :(
+        DecimalCoin currentCRR;
+        DecimalCoin prevCRR;
 
-        double getWithdrawnRewards(Address delegator) {
-            return withdrawnRewards.getOrDefault(delegator, 0d);
+        long getWithdrawnRewards(Address delegator) {
+            return withdrawnRewards.getOrDefault(delegator, 0L);
         }
 
         // Initialize pool
-        PoolStateMachine(double fee) {
+        PoolStateMachine(int fee) {
+            assert (fee >= 0 && fee <= 100);
             this.fee = fee;
 
-            currentCRR = 0d;
-            prevCRR = 0d;
+            currentCRR = DecimalCoin.ZERO;
+            prevCRR = DecimalCoin.ZERO;
 
             delegations = new HashMap<>();
         }
@@ -63,16 +111,16 @@ public class F2ToyRewardsManager extends RewardsManager {
         /**
          * @return the bonded stake that just "left"
          */
-        private double leave(Address delegator, long blockNumber) {
+        private long leave(Address delegator, long blockNumber) {
             assert (delegator != null && delegations.containsKey(delegator)); // sanity check
 
             incrementPeriod();
-            double rewards = calculateUnsettledRewards(delegator, blockNumber);
+            long rewards = calculateUnsettledRewards(delegator, blockNumber);
 
-            settledRewards.put(delegator, rewards + settledRewards.getOrDefault(delegator, 0d));
+            settledRewards.put(delegator, rewards + settledRewards.getOrDefault(delegator, 0L));
 
             StartingInfo startingInfo = delegations.get(delegator);
-            double stake = startingInfo.stake;
+            long stake = startingInfo.stake;
 
             delegations.remove(delegator);
 
@@ -81,7 +129,7 @@ public class F2ToyRewardsManager extends RewardsManager {
             return stake;
         }
 
-        private void join(Address delegator, long blockNumber, double stake) {
+        private void join(Address delegator, long blockNumber, long stake) {
             assert (delegator != null && !delegations.containsKey(delegator)); // sanity check
 
             // add this new delegation to our store
@@ -97,63 +145,65 @@ public class F2ToyRewardsManager extends RewardsManager {
         private void incrementPeriod() {
             if (accumulatedStake > 0) {
                 prevCRR = currentCRR;
-                currentCRR += currentRewards / accumulatedStake;
+
+                DecimalCoin crr = DecimalCoin.valueOf(currentRewards).divideTruncate(DecimalCoin.valueOf(accumulatedStake));
+                currentCRR = currentCRR.add(crr);
+            } else {
+                // if there is no stake, then there should be no way to have accumulated rewards
+                assert (currentRewards == 0);
             }
 
             currentRewards = 0;
         }
 
-        private double calculateUnsettledRewards(Address delegator, long blockNumber) {
+        private long calculateUnsettledRewards(Address delegator, long blockNumber) {
             StartingInfo startingInfo = delegations.get(delegator);
 
             // cannot calculate delegation rewards for blocks before stake was delegated
             assert (startingInfo.blockNumber <= blockNumber);
 
+            // if a new period was created this block, then no rewards could be "settled" at this block
             if (startingInfo.blockNumber == blockNumber)
-                return 0D;
+                return 0L;
 
-            double stake = startingInfo.stake;
+            long stake = startingInfo.stake;
 
             // return stake * (ending - starting)
-            double startingCRR = startingInfo.crr;
-            double endingCRR = currentCRR;
-            double differenceCRR = endingCRR - startingCRR;
+            DecimalCoin startingCRR = startingInfo.crr;
+            DecimalCoin endingCRR = currentCRR;
+            DecimalCoin differenceCRR = endingCRR.subtract(startingCRR);
 
-            if (differenceCRR < 0) {
-                throw new RuntimeException("Negative rewards should not be possible");
-            }
-
-            return (differenceCRR * stake);
+            return differenceCRR.multiplyTruncate(DecimalCoin.valueOf(stake)).getTruncated().longValueExact();
         }
 
         /* ----------------------------------------------------------------------
          * Contract Lifecycle Functions
          * ----------------------------------------------------------------------*/
-        public void onUnvote(Address delegator, long blockNumber, double stake) {
+        public void onUnvote(Address delegator, long blockNumber, long stake) {
             assert (delegations.containsKey(delegator));
-            double prevBond = delegations.get(delegator).stake;
+            long prevBond = delegations.get(delegator).stake;
             assert (stake <= prevBond); // make sure the amount of unvote requested is legal.
 
-            double unbondedStake = leave(delegator, blockNumber);
+            long unbondedStake = leave(delegator, blockNumber);
             assert (unbondedStake == prevBond);
 
             // if they didn't fully un-bond, re-bond the remaining amount
-            double nextBond = prevBond - stake;
+            long nextBond = prevBond - stake;
             if (nextBond > 0) {
                 join(delegator, blockNumber, nextBond);
             }
         }
 
-        public void onVote(Address delegator, long blockNumber, double stake) {
+        public void onVote(Address delegator, long blockNumber, long stake) {
             assert (stake >= 0);
 
-            double prevBond = 0d;
+            long prevBond = 0L;
             if (delegations.containsKey(delegator))
                 prevBond = leave(delegator, blockNumber);
             else
                 incrementPeriod();
 
-            double nextBond = prevBond + stake;
+            long nextBond = prevBond + stake;
             join(delegator, blockNumber, nextBond);
         }
 
@@ -166,17 +216,17 @@ public class F2ToyRewardsManager extends RewardsManager {
         public void onWithdraw(Address delegator, long blockNumber) {
             if (delegations.containsKey(delegator)) {
                 // do a "leave-and-join"
-                double unbondedStake = leave(delegator, blockNumber);
+                long unbondedStake = leave(delegator, blockNumber);
                 join(delegator, blockNumber, unbondedStake);
             }
 
             // if I don't see a delegation, then you must have been settled already.
 
             // now that all rewards owed to you are settled, you can withdraw them all at once
-            double rewards = settledRewards.getOrDefault(delegator, 0d);
+            long rewards = settledRewards.getOrDefault(delegator, 0L);
             settledRewards.remove(delegator);
 
-            withdrawnRewards.put(delegator, rewards + withdrawnRewards.getOrDefault(delegator, 0d));
+            withdrawnRewards.put(delegator, rewards + withdrawnRewards.getOrDefault(delegator, 0L));
             outstandingRewards -= rewards;
         }
 
@@ -207,8 +257,8 @@ public class F2ToyRewardsManager extends RewardsManager {
     }
 
     @Override
-    public Map<Address, Double> computeRewards(List<Event> events) {
-        PoolStateMachine sm = new PoolStateMachine(0D);
+    public Map<Address, Long> computeRewards(List<Event> events) {
+        PoolStateMachine sm = new PoolStateMachine(0);
         Set<Address> addresses = new HashSet<>();
 
         assert (events.size() > 0);
@@ -218,7 +268,7 @@ public class F2ToyRewardsManager extends RewardsManager {
         for (Event event : events) {
             Address delegator = event.source;
             blockNumber = event.blockNumber;
-            Double amount = event.amount;
+            Long amount = event.amount;
 
             if (event.type != EventType.BLOCK)
                 addresses.add(delegator);
@@ -233,6 +283,7 @@ public class F2ToyRewardsManager extends RewardsManager {
                     break;
                 }
                 case WITHDRAW: {
+                    //noinspection ConstantConditions
                     assert (amount == null);
                     sm.onWithdraw(delegator, blockNumber);
                     break;
@@ -246,7 +297,7 @@ public class F2ToyRewardsManager extends RewardsManager {
         }
 
         // finalize the owed + withdrawn rewards
-        Map<Address, Double> rewards = new HashMap<>();
+        Map<Address, Long> rewards = new HashMap<>();
         for (Address a : addresses) {
             sm.onWithdraw(a, blockNumber);
             rewards.put(a, sm.getWithdrawnRewards(a));

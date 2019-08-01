@@ -1,4 +1,4 @@
-package org.aion.unity.distribution.model;
+package org.aion.unity.toy.model;
 
 import avm.Address;
 
