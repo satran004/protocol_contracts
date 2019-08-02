@@ -204,7 +204,7 @@ public class F1RewardsManager extends RewardsManager {
         public void onBlock(long blockNumber, double blockReward) {
             assert (blockNumber > 0 && blockReward > 0); // sanity check
 
-            double commission = fee * blockReward;
+            double commission = (fee * blockReward) / 100d;
             double shared = blockReward - commission;
 
             this.accumulatedCommission += commission;
@@ -215,7 +215,7 @@ public class F1RewardsManager extends RewardsManager {
 
     @Override
     public Reward computeRewards(List<Event> events, int fee)  {
-        PoolStateMachine sm = new PoolStateMachine(0);
+        PoolStateMachine sm = new PoolStateMachine(fee);
         Set<Address> addresses = new HashSet<>();
 
         assert (events.size() > 0);

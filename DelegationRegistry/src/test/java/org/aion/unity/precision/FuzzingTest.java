@@ -19,7 +19,7 @@ public class FuzzingTest {
     @Test
     public void testVectorSimple() {
         final long REWARD = 5_000_000L;
-        final int poolFee = 0;
+        final int poolFee = 2; // 2%
 
         // Generate test vector
         List<RewardsManager.Event> events = new ArrayList<>();
@@ -60,7 +60,7 @@ public class FuzzingTest {
         int maxActionsPerBlock = 3;
         long blockReward = 5_000_000L;
         float poolProbability = 0.8f; // pool's probability of winning a block.
-        int poolFee = 0;
+        int poolFee = 3; // 3%
 
         SimpleRewardsManager rm = new SimpleRewardsManager();
 

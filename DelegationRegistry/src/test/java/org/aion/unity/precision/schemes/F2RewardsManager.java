@@ -145,7 +145,7 @@ public class F2RewardsManager extends RewardsManager {
 
         private void incrementPeriod() {
             // deal with the block rewards
-            double commission = fee * accumulatedBlockRewards;
+            double commission = (fee * accumulatedBlockRewards) / 100d;
             double shared = accumulatedBlockRewards - commission;
 
             this.accumulatedCommission += commission;
@@ -266,7 +266,7 @@ public class F2RewardsManager extends RewardsManager {
 
     @Override
     public Reward computeRewards(List<Event> events, int fee)  {
-        PoolStateMachine sm = new PoolStateMachine(0);
+        PoolStateMachine sm = new PoolStateMachine(fee);
         Set<Address> addresses = new HashSet<>();
 
         assert (events.size() > 0);

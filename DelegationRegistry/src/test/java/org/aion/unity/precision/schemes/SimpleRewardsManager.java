@@ -13,6 +13,8 @@ public class SimpleRewardsManager extends RewardsManager {
     private Map<Address, Long> pendingRewardMap = new HashMap<>();
     private Map<Address, Long> withdrawnRewardMap = new HashMap<>();
     Set<Address> addresses = new HashSet<>();
+    private long accumulatedCommission;
+
 
     void onWithdraw(Address source) {
         if (!pendingRewardMap.containsKey(source))
@@ -84,6 +86,12 @@ public class SimpleRewardsManager extends RewardsManager {
 
                     // split the rewards for this block between the stakers who contributed to it.
                     @SuppressWarnings("ConstantConditions") long blockReward = x.amount;
+
+                    // deal with the block rewards
+                    double commission = (fee * blockReward) / 100d;
+                    double shared = blockReward - commission;
+
+                    accumulatedCommission += commission;
                     rewardOutstanding += blockReward;
 
                     // i need to compute the ratio of what is owed to each of the stakers
@@ -93,7 +101,7 @@ public class SimpleRewardsManager extends RewardsManager {
                     }
 
                     for (Map.Entry<Address, Double> r : ratioOwed.entrySet()) {
-                        long stakerReward = (long) (blockReward * r.getValue());
+                        long stakerReward = (long) (shared * r.getValue());
                         if (pendingRewardMap.containsKey(r.getKey())) {
                             pendingRewardMap.put(r.getKey(), pendingRewardMap.get(r.getKey()) + stakerReward);
                         } else {
@@ -118,7 +126,7 @@ public class SimpleRewardsManager extends RewardsManager {
 
         r.delegatorRewards = delegatorRewards;
         r.outstandingRewards = rewardOutstanding;
-        r.operatorRewards = 0l;
+        r.operatorRewards = accumulatedCommission;
 
         return r;
     }
