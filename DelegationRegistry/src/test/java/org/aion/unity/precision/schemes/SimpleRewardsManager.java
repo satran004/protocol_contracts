@@ -1,7 +1,7 @@
-package org.aion.unity.decimal.schemes;
+package org.aion.unity.precision.schemes;
 
 import avm.Address;
-import org.aion.unity.decimal.model.RewardsManager;
+import org.aion.unity.precision.model.RewardsManager;
 
 import java.util.*;
 

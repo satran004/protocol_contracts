@@ -1,4 +1,4 @@
-package org.aion.unity.decimal.model;
+package org.aion.unity.precision.model;
 
 import java.math.BigInteger;
 
@@ -23,7 +23,7 @@ public class Decimal {
     }
 
     public static Decimal valueOf(long v) {
-        // important to do the decimal expansion here!
+        // important to do the precision expansion here!
         return new Decimal(BigInteger.valueOf(v).multiply(precisionInt));
     }
 

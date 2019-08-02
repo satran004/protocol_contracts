@@ -1,71 +1,26 @@
-package org.aion.unity.decimal.schemes;
+package org.aion.unity.precision.schemes;
 
 import avm.Address;
-import org.aion.unity.decimal.model.Decimal;
-import org.aion.unity.decimal.model.RewardsManager;
+import org.aion.unity.precision.model.RewardsManager;
 
 import java.util.*;
 
-/**
- * Notes on Precision Selection
- * ----------------------------
- *
- * WLOG, all amounts are denominated in some units of "coin".
- *
- * When we refer to "precision", we mean the number of decimal places required to represent the smallest possible real
- * number that can arise when we divide the smallest unit of staked coin, with the largest size of the pool.
- *
- * Such quantity required in the computation of the F1 rewards distribution scheme.
- *
- * Consider the following degenerate case: all coins in the system are delegated to one pool, and a delegator has
- * staked 1 coin to this pool. In this case, the maximum decimal "precision" we need is the number of decimal places
- * required to represent (max # of coins in the system)^-1
- *
- * Now, if there is an upper limit to the number of coins that can be delegated to a pool, then the "precision" we
- * need would be the number of decimal places required to represent (max # of coins per pool)^-1. In the
- * absence of such a maximum, in the design of this system, we fall-back to the "precision" that depends on the max #
- * of coins in the system.
- *
- * Furthermore, we run into another problem here; the max # of coins in the system has not been defined for Aion. In
- * order to resolve this, we consider the maximum number which can be represented by a 64-bit signed (Java) long,
- * the number of decimal places required is ceil(log_10(2^63 - 1)) = ceil(18.96) = 19 ~ 20.
- *
- * Assuming the AVM data-word limit of 128-bit unsigned integer, the number of decimal places required
- * is ceil(log_10(2^128 - 1)) = ceil(38.53) = 39 ~ 40.
- *
- * We pick 20 decimal places as the "precision" in this proof of concept.
- *
- * Under such a precision regime:
- * > All additions and subtractions can be computed without precision loss
- * > Multiplications would need to be performed with double the precision (40 decimal places), which is then
- *    truncated down to 20 decimal places.
- *
- * Miscellaneous Notes for the Implementor
- * ---------------------------------------
- *
- * 1. We've used long to represent all "coin" units in this system. A decision needs to be made about the units used
- *    in the smart contract; if we're using base units (nAmp) or Aion, or some other quanta of coin.
- *
- *
- *
- */
 @SuppressWarnings("unused")
-public class F2RewardsManager extends RewardsManager {
+public class F1RewardsManager extends RewardsManager {
 
     @SuppressWarnings({"WeakerAccess"})
     public class StartingInfo {
         public long stake;             // amount of coins being delegated
         public long blockNumber;       // block number at which delegation was created
-        public Decimal crr;
+        public double crr;
 
-        public StartingInfo(long stake, long blockNumber, Decimal crr) {
+        public StartingInfo(long stake, long blockNumber, double crr) {
             this.stake = stake;
             this.blockNumber = blockNumber;
             this.crr = crr;
         }
     }
 
-    @SuppressWarnings("WeakerAccess")
     private class PoolStateMachine {
         // pool variables
         private final int fee; // 0-100%
@@ -87,8 +42,8 @@ public class F2RewardsManager extends RewardsManager {
         private Map<Address, StartingInfo> delegations; // total delegations per delegator
 
         // TODO: can't use arbitrary precision real numbers here :(
-        Decimal currentCRR;
-        Decimal prevCRR;
+        double currentCRR;
+        double prevCRR;
 
         long getWithdrawnRewards(Address delegator) {
             return withdrawnRewards.getOrDefault(delegator, 0L);
@@ -99,8 +54,8 @@ public class F2RewardsManager extends RewardsManager {
             assert (fee >= 0 && fee <= 100);
             this.fee = fee;
 
-            currentCRR = Decimal.ZERO;
-            prevCRR = Decimal.ZERO;
+            currentCRR = 0d;
+            prevCRR = 0d;
 
             delegations = new HashMap<>();
         }
@@ -145,9 +100,7 @@ public class F2RewardsManager extends RewardsManager {
         private void incrementPeriod() {
             if (accumulatedStake > 0) {
                 prevCRR = currentCRR;
-
-                Decimal crr = Decimal.valueOf(currentRewards).divideTruncate(Decimal.valueOf(accumulatedStake));
-                currentCRR = currentCRR.add(crr);
+                currentCRR += currentRewards / accumulatedStake;
             } else {
                 // if there is no stake, then there should be no way to have accumulated rewards
                 assert (currentRewards == 0);
@@ -169,11 +122,15 @@ public class F2RewardsManager extends RewardsManager {
             long stake = startingInfo.stake;
 
             // return stake * (ending - starting)
-            Decimal startingCRR = startingInfo.crr;
-            Decimal endingCRR = currentCRR;
-            Decimal differenceCRR = endingCRR.subtract(startingCRR);
+            double startingCRR = startingInfo.crr;
+            double endingCRR = currentCRR;
+            double differenceCRR = endingCRR - startingCRR;
 
-            return differenceCRR.multiplyTruncate(Decimal.valueOf(stake)).getTruncated().longValueExact();
+            if (differenceCRR < 0) {
+                throw new RuntimeException("Negative rewards should not be possible");
+            }
+
+            return (long)(differenceCRR * stake);
         }
 
         /* ----------------------------------------------------------------------
@@ -313,5 +270,6 @@ public class F2RewardsManager extends RewardsManager {
         r.operatorRewards = sm.withdrawnCommission;
 
         return r;
+
     }
 }

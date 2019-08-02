@@ -1,13 +1,13 @@
-package org.aion.unity.decimal;
+package org.aion.unity.precision;
 
 import avm.Address;
-import org.aion.unity.decimal.model.RewardsManager;
-import static org.aion.unity.decimal.model.RewardsManager.Reward;
-import static org.aion.unity.decimal.model.RewardsManager.Event;
+import org.aion.unity.precision.model.RewardsManager;
+import static org.aion.unity.precision.model.RewardsManager.Reward;
+import static org.aion.unity.precision.model.RewardsManager.Event;
 
-import org.aion.unity.decimal.schemes.F1RewardsManager;
-import org.aion.unity.decimal.schemes.F2RewardsManager;
-import org.aion.unity.decimal.schemes.SimpleRewardsManager;
+import org.aion.unity.precision.schemes.F1RewardsManager;
+import org.aion.unity.precision.schemes.F2RewardsManager;
+import org.aion.unity.precision.schemes.SimpleRewardsManager;
 import org.junit.Test;
 
 import java.math.BigInteger;

@@ -1,4 +1,4 @@
-package org.aion.unity.decimal.model;
+package org.aion.unity.precision.model;
 
 import avm.Address;
 
