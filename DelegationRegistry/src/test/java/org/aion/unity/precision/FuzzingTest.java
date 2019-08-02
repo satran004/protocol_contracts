@@ -44,31 +44,7 @@ public class FuzzingTest {
         events.add(new RewardsManager.Event(RewardsManager.EventType.WITHDRAW, addressOf(4), 36, null));
         events.add(new RewardsManager.Event(RewardsManager.EventType.WITHDRAW, addressOf(5), 36, null));
 
-        RewardsManager simple = new SimpleRewardsManager();
-        Reward r0 = simple.computeRewards(events, poolFee);
-
-        RewardsManager f1 = new F1RewardsManager();
-        Reward r1 = f1.computeRewards(events, poolFee);
-
-        RewardsManager f2 = new F2RewardsManager();
-        Reward r2 = f2.computeRewards(events, poolFee);
-
-        System.out.println("Simple Rewards Stats\n---------------------------------");
-        System.out.println(r0 + "\n");
-
-        System.out.println("F1 Stats\n---------------------------------");
-        System.out.println(r1 + "\n");
-
-        System.out.println("F2 Stats\n---------------------------------");
-        System.out.println(r2 + "\n");
-
-        double[] error1 = calcErrorSD(r0.delegatorRewards, r1.delegatorRewards);
-        double[] error2 = calcErrorSD(r0.delegatorRewards, r2.delegatorRewards);
-
-        System.out.println("STD Comparison\n---------------------------------");
-
-        System.out.printf("Error (F1): mean = %.2f%%, sd = %.2f%%\n", error1[0], error1[1]);
-        System.out.printf("Error (F2): mean = %.2f%%, sd = %.2f%%\n", error2[0], error2[1]);
+        printStats(events, poolFee);
     }
 
     @Test
@@ -129,8 +105,6 @@ public class FuzzingTest {
 
                         if (pendingRewards > 0)
                             v.add(new RewardsManager.Event(RewardsManager.EventType.WITHDRAW, user, i, null));
-
-
                     }
                 }
             }
@@ -150,6 +124,10 @@ public class FuzzingTest {
             events.addAll(v);
         }
 
+        printStats(events, poolFee);
+    }
+
+    private void printStats(List<Event> events, int poolFee) {
         RewardsManager simple = new SimpleRewardsManager();
         Reward r0 = simple.computeRewards(events, poolFee);
 

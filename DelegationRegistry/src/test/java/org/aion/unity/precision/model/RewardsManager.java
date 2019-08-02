@@ -27,7 +27,6 @@ public abstract class RewardsManager {
             b.append("Outstanding Coins: " + outstandingRewards + "\n");
             b.append("Operator Rewards: " + operatorRewards);
 
-
             return b.toString();
         }
     }

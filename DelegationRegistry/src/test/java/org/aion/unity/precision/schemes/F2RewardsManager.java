@@ -72,6 +72,7 @@ public class F2RewardsManager extends RewardsManager {
 
         // state variables
         private long accumulatedStake; // stake accumulated in the pool
+        private long accumulatedBlockRewards; // rewards paid to pool per block
 
         // commission is handled separately
         private long accumulatedCommission;
@@ -143,6 +144,18 @@ public class F2RewardsManager extends RewardsManager {
          * ----------------------------------------------------------------------*/
 
         private void incrementPeriod() {
+            // deal with the block rewards
+            double commission = fee * accumulatedBlockRewards;
+            double shared = accumulatedBlockRewards - commission;
+
+            this.accumulatedCommission += commission;
+            this.currentRewards += shared;
+            this.outstandingRewards += accumulatedBlockRewards;
+
+            // "reset" the block rewards accumulator
+            accumulatedBlockRewards = 0;
+
+            // deal with the CRR computations
             if (accumulatedStake > 0) {
                 prevCRR = currentCRR;
 
@@ -247,12 +260,7 @@ public class F2RewardsManager extends RewardsManager {
         public void onBlock(long blockNumber, double blockReward) {
             assert (blockNumber > 0 && blockReward > 0); // sanity check
 
-            double commission = fee * blockReward;
-            double shared = blockReward - commission;
-
-            this.accumulatedCommission += commission;
-            this.currentRewards += shared;
-            this.outstandingRewards += blockReward;
+            accumulatedBlockRewards += blockReward;
         }
     }
 
