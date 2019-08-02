@@ -31,14 +31,6 @@ public class Decimal {
         return chopPrecisionAndTruncate(value);
     }
 
-    /**
-     * If the value {@code BigInteger} is out of the range of the {@code long} type,
-     * then an {@code ArithmeticException} is thrown.
-     */
-    public long longValue() {
-        return value.longValueExact();
-    }
-
     // common values
     public static Decimal ZERO = valueOf(0);
     public static Decimal ONE = valueOf(1);

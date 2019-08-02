@@ -145,8 +145,10 @@ public class F2RewardsManager extends RewardsManager {
 
         private void incrementPeriod() {
             // deal with the block rewards
-            double commission = (fee * accumulatedBlockRewards) / 100d;
-            double shared = accumulatedBlockRewards - commission;
+            long commission = Decimal.valueOf(fee * accumulatedBlockRewards)
+                    .divideTruncate(Decimal.valueOf(100))
+                    .getTruncated().longValueExact();
+            long shared = accumulatedBlockRewards - commission;
 
             this.accumulatedCommission += commission;
             this.currentRewards += shared;
@@ -243,8 +245,8 @@ public class F2RewardsManager extends RewardsManager {
             outstandingRewards -= rewards;
         }
 
-        public double onWithdrawOperator() {
-            double c = accumulatedCommission;
+        public long onWithdrawOperator() {
+            long c = accumulatedCommission;
             accumulatedCommission = 0;
 
             withdrawnCommission += c;
@@ -257,7 +259,7 @@ public class F2RewardsManager extends RewardsManager {
          * On block production, we need to withhold the pool commission, and update the rewards managed by this pool.
          * ref: https://github.com/cosmos/cosmos-sdk/blob/master/x/distribution/keeper/allocation.go
          */
-        public void onBlock(long blockNumber, double blockReward) {
+        public void onBlock(long blockNumber, long blockReward) {
             assert (blockNumber > 0 && blockReward > 0); // sanity check
 
             accumulatedBlockRewards += blockReward;
