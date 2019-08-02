@@ -2,6 +2,9 @@ package org.aion.unity.decimal;
 
 import avm.Address;
 import org.aion.unity.decimal.model.RewardsManager;
+import static org.aion.unity.decimal.model.RewardsManager.Reward;
+import static org.aion.unity.decimal.model.RewardsManager.Event;
+
 import org.aion.unity.decimal.schemes.F1RewardsManager;
 import org.aion.unity.decimal.schemes.F2RewardsManager;
 import org.aion.unity.decimal.schemes.SimpleRewardsManager;
@@ -16,6 +19,7 @@ public class FuzzingTest {
     @Test
     public void testVectorSimple() {
         final long REWARD = 5_000_000L;
+        final int poolFee = 0;
 
         // Generate test vector
         List<RewardsManager.Event> events = new ArrayList<>();
@@ -41,30 +45,46 @@ public class FuzzingTest {
         events.add(new RewardsManager.Event(RewardsManager.EventType.WITHDRAW, addressOf(5), 36, null));
 
         RewardsManager simple = new SimpleRewardsManager();
-        Map<Address, Long> r0 = simple.computeRewards(events);
+        Reward r0 = simple.computeRewards(events, poolFee);
 
-        RewardsManager f1 = new F2RewardsManager();
-        Map<Address, Long> r1 = f1.computeRewards(events);
+        RewardsManager f1 = new F1RewardsManager();
+        Reward r1 = f1.computeRewards(events, poolFee);
 
-        System.out.println(r0);
-        System.out.println(r1);
-        double[] error1 = calcErrorSD(r0, r1);
+        RewardsManager f2 = new F2RewardsManager();
+        Reward r2 = f2.computeRewards(events, poolFee);
+
+        System.out.println("Simple Rewards Stats\n---------------------------------");
+        System.out.println(r0 + "\n");
+
+        System.out.println("F1 Stats\n---------------------------------");
+        System.out.println(r1 + "\n");
+
+        System.out.println("F2 Stats\n---------------------------------");
+        System.out.println(r2 + "\n");
+
+        double[] error1 = calcErrorSD(r0.delegatorRewards, r1.delegatorRewards);
+        double[] error2 = calcErrorSD(r0.delegatorRewards, r2.delegatorRewards);
+
+        System.out.println("STD Comparison\n---------------------------------");
+
         System.out.printf("Error (F1): mean = %.2f%%, sd = %.2f%%\n", error1[0], error1[1]);
+        System.out.printf("Error (F2): mean = %.2f%%, sd = %.2f%%\n", error2[0], error2[1]);
     }
 
     @Test
     public void testVectorAutogen() {
         // generated vector
-        List<RewardsManager.Event> events = new ArrayList<>();
+        List<Event> events = new ArrayList<>();
 
         // system params
-        int users = 100;
+        int users = 1000;
         long maxUserBalance = 25000;
         long startBlock = 1;
-        long endBlock = 5000;
+        long endBlock = 10000;
         int maxActionsPerBlock = 3;
         long blockReward = 5_000_000L;
         float poolProbability = 0.8f; // pool's probability of winning a block.
+        int poolFee = 0;
 
         SimpleRewardsManager rm = new SimpleRewardsManager();
 
@@ -116,13 +136,13 @@ public class FuzzingTest {
             }
 
             // decide if this block will be produced by this pool
-            if (coinWithProbability(poolProbability)) {
+            if (coinWithProbability(poolProbability) && rm.getTotalStake() > 0) {
                 v.add(new RewardsManager.Event(RewardsManager.EventType.BLOCK, null, i, blockReward));
             }
 
             // apply the rewards this round to the simple rewards manager
             try {
-                rm.computeRewards(v);
+                rm.computeRewards(v, poolFee);
             } catch (Exception e) {
                 System.out.println("Bad events-list constructed.");
             }
@@ -131,15 +151,29 @@ public class FuzzingTest {
         }
 
         RewardsManager simple = new SimpleRewardsManager();
-        Map<Address, Long> r0 = simple.computeRewards(events);
+        Reward r0 = simple.computeRewards(events, poolFee);
 
         RewardsManager f1 = new F1RewardsManager();
-        Map<Address, Long> r1 = f1.computeRewards(events);
+        Reward r1 = f1.computeRewards(events, poolFee);
 
-        System.out.println(r0);
-        System.out.println(r1);
-        double[] error1 = calcErrorSD(r0, r1);
+        RewardsManager f2 = new F2RewardsManager();
+        Reward r2 = f2.computeRewards(events, poolFee);
+
+        System.out.println("Simple Rewards Stats\n---------------------------------");
+        System.out.println(r0 + "\n");
+
+        System.out.println("F1 Stats\n---------------------------------");
+        System.out.println(r1 + "\n");
+
+        System.out.println("F2 Stats\n---------------------------------");
+        System.out.println(r2 + "\n");
+
+        double[] error1 = calcErrorSD(r0.delegatorRewards, r1.delegatorRewards);
+        double[] error2 = calcErrorSD(r0.delegatorRewards, r2.delegatorRewards);
+
+        System.out.println("STD Comparison\n---------------------------------");
         System.out.printf("Error (F1): mean = %.2f%%, sd = %.2f%%\n", error1[0], error1[1]);
+        System.out.printf("Error (F2): mean = %.2f%%, sd = %.2f%%\n", error2[0], error2[1]);
     }
 
     private Address addressOf(int n) {

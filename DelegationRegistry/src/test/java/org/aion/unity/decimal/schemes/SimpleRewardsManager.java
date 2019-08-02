@@ -15,10 +15,8 @@ public class SimpleRewardsManager extends RewardsManager {
     Set<Address> addresses = new HashSet<>();
 
     void onWithdraw(Address source) {
-        if (!pendingRewardMap.containsKey(source)) {
-            System.out.println("Withdraw event called without any rewards balance.");
-            return;
-        }
+        if (!pendingRewardMap.containsKey(source))
+            return; // OK
 
         long remaining = pendingRewardMap.get(source);
 
@@ -28,7 +26,10 @@ public class SimpleRewardsManager extends RewardsManager {
         withdrawnRewardMap.put(source, withdrawnRewardMap.getOrDefault(source, 0L) + remaining);
     }
 
-    public Map<Address, Long> computeRewards(List<Event> events) throws RuntimeException {
+    @Override
+    public Reward computeRewards(List<Event> events, int fee) {
+        // ignore the fee for now ...
+
         // ASSUMPTIONS:
         // 1. all events are sorted by block number
         // 2. the block event is the last event for that particular block
@@ -106,14 +107,20 @@ public class SimpleRewardsManager extends RewardsManager {
             }
         }
 
+        Reward r = new Reward();
+
         // finalize the owed + withdrawn rewards
-        Map<Address, Long> rewards = new HashMap<>();
+        Map<Address, Long> delegatorRewards = new HashMap<>();
         for (Address a : addresses) {
             onWithdraw(a);
-            rewards.put(a, withdrawnRewardMap.getOrDefault(a, 0L));
+            delegatorRewards.put(a, withdrawnRewardMap.getOrDefault(a, 0L));
         }
 
-        return rewards;
+        r.delegatorRewards = delegatorRewards;
+        r.outstandingRewards = rewardOutstanding;
+        r.operatorRewards = 0l;
+
+        return r;
     }
 
     public Map<Address, Long> getStakeMap() {
@@ -132,5 +139,9 @@ public class SimpleRewardsManager extends RewardsManager {
     @SuppressWarnings("unused")
     public long getRewardOutstanding() {
         return rewardOutstanding;
+    }
+
+    public long getTotalStake() {
+        return totalStake;
     }
 }

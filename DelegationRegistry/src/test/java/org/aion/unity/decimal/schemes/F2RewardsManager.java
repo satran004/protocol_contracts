@@ -1,7 +1,7 @@
 package org.aion.unity.decimal.schemes;
 
 import avm.Address;
-import org.aion.unity.decimal.model.DecimalCoin;
+import org.aion.unity.decimal.model.Decimal;
 import org.aion.unity.decimal.model.RewardsManager;
 
 import java.util.*;
@@ -56,9 +56,9 @@ public class F2RewardsManager extends RewardsManager {
     public class StartingInfo {
         public long stake;             // amount of coins being delegated
         public long blockNumber;       // block number at which delegation was created
-        public DecimalCoin crr;
+        public Decimal crr;
 
-        public StartingInfo(long stake, long blockNumber, DecimalCoin crr) {
+        public StartingInfo(long stake, long blockNumber, Decimal crr) {
             this.stake = stake;
             this.blockNumber = blockNumber;
             this.crr = crr;
@@ -87,8 +87,8 @@ public class F2RewardsManager extends RewardsManager {
         private Map<Address, StartingInfo> delegations; // total delegations per delegator
 
         // TODO: can't use arbitrary precision real numbers here :(
-        DecimalCoin currentCRR;
-        DecimalCoin prevCRR;
+        Decimal currentCRR;
+        Decimal prevCRR;
 
         long getWithdrawnRewards(Address delegator) {
             return withdrawnRewards.getOrDefault(delegator, 0L);
@@ -99,8 +99,8 @@ public class F2RewardsManager extends RewardsManager {
             assert (fee >= 0 && fee <= 100);
             this.fee = fee;
 
-            currentCRR = DecimalCoin.ZERO;
-            prevCRR = DecimalCoin.ZERO;
+            currentCRR = Decimal.ZERO;
+            prevCRR = Decimal.ZERO;
 
             delegations = new HashMap<>();
         }
@@ -146,7 +146,7 @@ public class F2RewardsManager extends RewardsManager {
             if (accumulatedStake > 0) {
                 prevCRR = currentCRR;
 
-                DecimalCoin crr = DecimalCoin.valueOf(currentRewards).divideTruncate(DecimalCoin.valueOf(accumulatedStake));
+                Decimal crr = Decimal.valueOf(currentRewards).divideTruncate(Decimal.valueOf(accumulatedStake));
                 currentCRR = currentCRR.add(crr);
             } else {
                 // if there is no stake, then there should be no way to have accumulated rewards
@@ -169,11 +169,11 @@ public class F2RewardsManager extends RewardsManager {
             long stake = startingInfo.stake;
 
             // return stake * (ending - starting)
-            DecimalCoin startingCRR = startingInfo.crr;
-            DecimalCoin endingCRR = currentCRR;
-            DecimalCoin differenceCRR = endingCRR.subtract(startingCRR);
+            Decimal startingCRR = startingInfo.crr;
+            Decimal endingCRR = currentCRR;
+            Decimal differenceCRR = endingCRR.subtract(startingCRR);
 
-            return differenceCRR.multiplyTruncate(DecimalCoin.valueOf(stake)).getTruncated().longValueExact();
+            return differenceCRR.multiplyTruncate(Decimal.valueOf(stake)).getTruncated().longValueExact();
         }
 
         /* ----------------------------------------------------------------------
@@ -257,7 +257,7 @@ public class F2RewardsManager extends RewardsManager {
     }
 
     @Override
-    public Map<Address, Long> computeRewards(List<Event> events) {
+    public Reward computeRewards(List<Event> events, int fee)  {
         PoolStateMachine sm = new PoolStateMachine(0);
         Set<Address> addresses = new HashSet<>();
 
@@ -296,13 +296,22 @@ public class F2RewardsManager extends RewardsManager {
             }
         }
 
+        Reward r = new Reward();
+
         // finalize the owed + withdrawn rewards
-        Map<Address, Long> rewards = new HashMap<>();
+        Map<Address, Long> delegatorRewards = new HashMap<>();
         for (Address a : addresses) {
             sm.onWithdraw(a, blockNumber);
-            rewards.put(a, sm.getWithdrawnRewards(a));
+            delegatorRewards.put(a, sm.getWithdrawnRewards(a));
         }
 
-        return rewards;
+        // have the pool operator withdraw as well :)
+        sm.onWithdrawOperator();
+
+        r.delegatorRewards = delegatorRewards;
+        r.outstandingRewards = sm.outstandingRewards;
+        r.operatorRewards = sm.withdrawnCommission;
+
+        return r;
     }
 }

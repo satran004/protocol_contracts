@@ -214,7 +214,7 @@ public class F1RewardsManager extends RewardsManager {
     }
 
     @Override
-    public Map<Address, Long> computeRewards(List<Event> events) {
+    public Reward computeRewards(List<Event> events, int fee)  {
         PoolStateMachine sm = new PoolStateMachine(0);
         Set<Address> addresses = new HashSet<>();
 
@@ -253,13 +253,23 @@ public class F1RewardsManager extends RewardsManager {
             }
         }
 
+        Reward r = new Reward();
+
         // finalize the owed + withdrawn rewards
-        Map<Address, Long> rewards = new HashMap<>();
+        Map<Address, Long> delegatorRewards = new HashMap<>();
         for (Address a : addresses) {
             sm.onWithdraw(a, blockNumber);
-            rewards.put(a, sm.getWithdrawnRewards(a));
+            delegatorRewards.put(a, sm.getWithdrawnRewards(a));
         }
 
-        return rewards;
+        // have the pool operator withdraw as well :)
+        sm.onWithdrawOperator();
+
+        r.delegatorRewards = delegatorRewards;
+        r.outstandingRewards = sm.outstandingRewards;
+        r.operatorRewards = sm.withdrawnCommission;
+
+        return r;
+
     }
 }
