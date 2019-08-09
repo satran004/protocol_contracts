@@ -8,61 +8,36 @@ import avm.Address;
 @SuppressWarnings({"WeakerAccess", "UnnecessaryInterfaceModifier", "unused"})
 public interface StakerRegistryInterface {
 
-    // Registers a staker. The caller address will be the identification address of a registered staker.
+    // registers a staker; the caller address will be the identification address of a registered staker.
     public void registerStaker(Address signingAddress, Address coinbaseAddress);
 
-    // Votes for a staker. Any liquid coins, passed along the call, become locked stake.
+    // votes for a staker; any liquid coins, passed along the call, become locked stake.
     public void vote(Address staker);
 
-    // Unvotes for a staker. After a successful unvote, the locked coins will be released to the original owners, subject to lock-up period.
+    // un-votes for a staker; after a successful unvote, the locked coins will be released to the original owners, subject to lock-up period.
     public void unvote(Address staker, long amount);
 
-    // Un-votes for a staker, and receives the released fund using another account.
+    // un-votes for a staker, and receives the released fund using another account.
     public void unvoteTo(Address staker, long amount, Address receiver);
 
-    // Transfers stake from one staker to another staker.
+    // releases stake (locked coin) to owner (after un-stake lockout has elapsed).
+    public int finalizeUnvote(Address owner, int limit);
+
+    // transfers stake from one staker to another staker.
     public void transferStake(Address fromStaker, Address toStaker, long amount);
 
-    // Releases the stake (locked coin) to the owner.
-    public int releaseStake(Address owner, int limit);
+    // finalize up to {@code limit} number of un-vote operations, for the given address.
+    public int finalizeTransfer(Address staker, int limit);
 
-    // Setters
-    // ----------------------------------------------------------------
-
-    // Updates the signing address of a staker. Owner only.
+    // updates the signing address of a staker; can be called by owner only.
      public void setSigningAddress(Address newSigningAddress);
 
-    // Updates the coinbase address of a staker. Owner only.
+    // updates the coinbase address of a staker; can be called by owner only.
     public void setCoinbaseAddress(Address newCoinbaseAddress);
 
-    // Listeners
-    // ----------------------------------------------------------------
-
-    // Registers a listener. Owner only.
+    // registers a listener; can be called by owner only.
     public void addListener(Address listener);
 
-    // De-registers a listener. Owner only.
+    // de-registers a listener; can be called by owner only.
     public void removeListener(Address listener);
-
-    // Returns if the given listener is registered to the staker.
-    public boolean isListener(Address staker, Address listener);
-
-    // Getters
-    // ----------------------------------------------------------------
-
-    // Returns the total stake associated with a staker.
-    public long getStakeByStakerAddress(Address staker);
-
-    // Returns the total stake associated with a staker.
-    public long getStakeBySigningAddress(Address staker);
-
-    // Returns the stake from a voter to a staker.
-    public long getStake(Address staker, Address voter);
-
-    // Returns the signing address of a staker.
-    public Address getSigningAddress(Address staker);
-
-    // Returns the coinbase address of a staker.
-    public Address getCoinbaseAddress(Address staker);
-
 }

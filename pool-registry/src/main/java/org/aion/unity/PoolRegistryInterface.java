@@ -5,30 +5,36 @@ import avm.Address;
 @SuppressWarnings({"unused", "UnnecessaryInterfaceModifier"})
 public interface PoolRegistryInterface extends StakerRegistryListener {
 
-    // Register a pool in the registry.
+    // register a pool in this registry.
     public Address registerPool(byte[] metaData, int commissionRate);
 
-    // Delegates stake to a pool.
+    // delegate coins to a pool.
     public void delegate(Address pool);
 
-    // Cancels stake to a pool.
+    // convert stake (delegated to a pool) to liquid coins (un-stake lockout applies).
     public void undelegate(Address pool, long amount);
 
-    // Redelegate a pool using the rewards.
+    // delegate rewards earned, back to the pool.
     public void redelegateRewards(Address pool);
 
-    // Transfers stake from one pool to another.
-    public  void transferStake(Address fromPool, Address toPool, long amount);
+    // transfer stake from one pool to another (transfer-stake lockout applies).
+    public void transferStake(Address fromPool, Address toPool, long amount);
 
-    // Returns the stake of a delegator to a pool.
-    public long getStake(Address pool, Address delegator);
-
-    // Returns the outstanding rewards of a delegator.
-    public long getRewards(Address pool, Address delegator);
-
-    // Withdraws rewards from one pool
+    // withdraws rewards (for delegated stake) from a pool.
     public long withdraw(Address pool);
 
-    // Returns pool status (ACTIVE or BROKEN).
-    public String getPoolStatus(Address pool);
+    // finalize up to {@code limit} number of un-vote operations, for the given address; can be called by any user.
+    public int finalizeUnvote(Address owner, int limit);
+
+    // finalize up to {@code limit} transfer operations; can be called by any user.
+    public void finalizeTransfer(long transferId);
+
+    // enable auto re-delegation of rewards, specifying the "tip" callers of {@link #autoRedelegate(Address, Address) autoRedelegate} can earn.
+    public void enableAutoRedelegation(Address pool, int feePercentage);
+
+    // disable auto re-delegation of rewards.
+    public void disableAutoRedelegation(Address pool);
+
+    // delegates rewards for the given address, if delegator opted into  auto-redelegation; can be called by any user.
+    public void autoRedelegate(Address pool, Address delegator);
 }

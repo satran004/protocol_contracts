@@ -502,7 +502,6 @@ public class PoolRegistry {
 
     }
 
-
     private static void switchToActive(PoolState ps) {
         ps.isActive = true;
         ps.rewards.setCommissionRate(ps.commissionRate);
@@ -563,7 +562,6 @@ public class PoolRegistry {
         Result result = Blockchain.call(targetAddress, value, data, energyLimit);
         require(result.isSuccess());
     }
-
 
     private static <K, V> V getOrDefault(Map<K, V> map, K key, V defaultValue) {
         if (map.containsKey(key)) {
