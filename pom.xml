@@ -4,7 +4,7 @@
     <groupId>org.aion.unity</groupId>
     <artifactId>unity-contracts</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>${revision}</version>
 
     <name>unity-contracts</name>
 
@@ -22,6 +22,8 @@
 
         <aion4j.plugin.version>0.7.2</aion4j.plugin.version>
         <avm.lib.dir>${project.basedir}/lib</avm.lib.dir>
+
+        <revision>1.0-SNAPSHOT</revision>
     </properties>
 
     <dependencies>
