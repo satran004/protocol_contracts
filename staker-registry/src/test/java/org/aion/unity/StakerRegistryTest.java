@@ -1,10 +1,9 @@
 package org.aion.unity;
 
 import avm.Address;
-import org.aion.avm.tooling.AvmRule;
+import org.aion.avm.embed.AvmRule;
 import org.aion.avm.userlib.abi.ABIStreamingEncoder;
-import org.aion.kernel.TestingKernel;
-import org.aion.vm.api.interfaces.ResultCode;
+import org.aion.types.TransactionStatus;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,7 +47,7 @@ public class StakerRegistryTest {
         coinbaseAddress = RULE.getRandomAddress(BigInteger.ZERO);
 
         // deploy the staker registry contract
-        byte[] jar = RULE.getDappBytes(StakerRegistry.class, null, otherClasses);
+        byte[] jar = RULE.getDappBytes(StakerRegistry.class, null, otherClasses,);
         stakerRegistry = RULE.deploy(preminedAddress, BigInteger.ZERO, jar).getDappAddress();
 
         // register the staker
@@ -61,7 +60,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(stakerAddress)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(stakerAddress, stakerRegistry, BigInteger.ZERO, txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
     }
 
@@ -73,7 +72,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(stakerAddress)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(preminedAddress, stakerRegistry, BigInteger.ZERO, txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
         Assert.assertEquals(signingAddress, result.getDecodedReturnData());
 
@@ -99,7 +98,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(stakerAddress)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(preminedAddress, stakerRegistry, BigInteger.valueOf(voteAmount), txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
 
         // then unvote
@@ -145,7 +144,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(stakerAddress)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(stakerAddress, stakerRegistry, halfMinStake, txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
 
         // query the effective stake
@@ -197,7 +196,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(stakerAddress2)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(stakerAddress2, stakerRegistry, BigInteger.ZERO, txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
 
         // vote first
@@ -266,7 +265,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(anotherAddress)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(stakerAddress, stakerRegistry, BigInteger.ZERO, txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertFalse(status.isSuccess());
 
         tweakBlockNumber(1L + StakerRegistry.SIGNING_ADDRESS_COOLING_PERIOD);
@@ -300,7 +299,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(anotherAddress)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(stakerAddress, stakerRegistry, BigInteger.ZERO, txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
 
         txData = new ABIStreamingEncoder()
@@ -330,7 +329,7 @@ public class StakerRegistryTest {
                 .encodeOneAddress(stakerAddress)
                 .toBytes();
         AvmRule.ResultWrapper result = RULE.call(preminedAddress, stakerRegistry, BigInteger.valueOf(voteAmount), txData);
-        ResultCode status = result.getReceiptStatus();
+        TransactionStatus status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
 
         // then unvote
@@ -364,6 +363,10 @@ public class StakerRegistryTest {
         result = RULE.call(preminedAddress, stakerRegistry, BigInteger.ZERO, txData);
         status = result.getReceiptStatus();
         Assert.assertTrue(status.isSuccess());
+    }
+
+    @Test
+    public void name() {
     }
 
     public void tweakBlockNumber(long number) {
