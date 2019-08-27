@@ -22,6 +22,7 @@
             <groupId>org.aion.unity</groupId>
             <artifactId>pool-registry</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
